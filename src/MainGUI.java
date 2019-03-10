@@ -1,13 +1,13 @@
+/* Warkah Scott */
+
 import java.util.Collections;
 import java.util.LinkedList;
-
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.ListView;
 import javafx.scene.image.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -38,22 +38,26 @@ public class MainGUI extends Application
 	private double endX = 0;
 	private double endY = 0;
 	
+	private final String[] Superscript = {"\u2070", "\u00B9", "\u00B2", 
+										  "\u00B3", "\u2074", "\u2075", 
+										  "\u2076", "\u2077", "\u2078", "\u2079"};
+	
 	@Override
 	public void start(Stage mainStage) throws Exception
 	{
-		mainStage.setTitle("Graph Application v0.3");
+		mainStage.setTitle("Graph Application v0.4");
 		mainStage.getIcons().add(new Image(MainGUI.class.getResourceAsStream("graph.jpg")));
 		
 		//Centers the window
 		Rectangle2D screen = Screen.getPrimary().getBounds();
 		mainStage.setX((screen.getMaxX() - SCREEN_WIDTH) / 2);
 		mainStage.setY((screen.getMaxY() - SCREEN_HEIGHT) / 2);
-		
+
 		mainStage.setResizable(true);
 		mainStage.setHeight(SCREEN_HEIGHT);
-		mainStage.setWidth(SCREEN_WIDTH + 100);
+		mainStage.setWidth(SCREEN_WIDTH + 200);
 		
-		MENU.setPrefWidth(100);
+		MENU.setPrefWidth(200);
 		
 		Button organize = new Button("Organize");
 		organize.setPrefWidth(80);
@@ -62,18 +66,9 @@ public class MainGUI extends Application
 										draw(mainStage);
 									});
 		
-		ToggleGroup profiles = new ToggleGroup();
-		RadioButton r1 = new RadioButton("Degree");
-		r1.setToggleGroup(profiles);
-		RadioButton r2 = new RadioButton("I. Max");
-		r2.setToggleGroup(profiles);
-		RadioButton r3 = new RadioButton("E. Max");
-		r3.setToggleGroup(profiles);
-		RadioButton r4 = new RadioButton("I. Min");
-		r4.setToggleGroup(profiles);
-		RadioButton r5 = new RadioButton("E. Min");
-		r5.setToggleGroup(profiles);
-		VBox profileMenu = new VBox(5, r1, r2, r3, r4, r5);
+		ListView<String> profiles = new ListView<String>();
+		profiles.getItems().addAll("Deg:", "I. Max:", "E. Max:", "I. Min:", "E. Min:");
+		profiles.setMaxHeight(116.95);
 		
 		Button clear = new Button("Clear");
 		clear.setPrefWidth(80);
@@ -82,7 +77,7 @@ public class MainGUI extends Application
 										draw(mainStage);
 									});
 		
-		MENU.getChildren().addAll(organize, profileMenu, clear);
+		MENU.getChildren().addAll(organize, profiles, clear);
 		MENU.setAlignment(Pos.CENTER);
 		
 		draw(mainStage);
@@ -91,7 +86,6 @@ public class MainGUI extends Application
 	
 	private void draw(Stage owner)
 	{
-		String profileText = "";
 		Collections.sort(nodes, Collections.reverseOrder());
 		
 		Pane scene = new Pane();
@@ -112,13 +106,7 @@ public class MainGUI extends Application
 			label.setFill(Color.WHITE);
 			label.setFont(Font.font("arial", FontWeight.BOLD, null, 14));
 			scene.getChildren().add(label);
-			profileText = profileText + v.getConnections().size() + " ";
 		}
-		
-		Text profile = new Text(10, owner.getHeight()-50, "Profile: " + profileText);
-		profile.setFill(Color.BLACK);
-		profile.setFont(Font.font("arial", FontWeight.BOLD, null, 20));
-		scene.getChildren().add(profile);
 		
 		HBox gui = new HBox(5, MENU, scene);
 		Scene screen = new Scene(gui);
@@ -150,7 +138,9 @@ public class MainGUI extends Application
 		Vertex.setIndex(nodes.size());
 		for(Vertex v : nodes)
 			v.setDegree(nodes.size() - v.getConnections().size());
-
+		
+		profileUpdate();
+		
 		owner.setScene(screen);
 	}
 	
@@ -332,6 +322,83 @@ public class MainGUI extends Application
 	{
 		nodes = new LinkedList<Vertex>();
 		edges = new LinkedList<Line>();
+	}
+	
+	private void profileUpdate()
+	{
+		String deg = "Deg: ";
+		String imax = "I. Max: ";
+		String emax = "E. Max: ";
+		String imin = "I. Min: ";
+		String emin = "E. Min: ";
+		
+		LinkedList<Integer> mx = new LinkedList<Integer>();
+		LinkedList<Integer> mn = new LinkedList<Integer>();
+		
+		for(Vertex v : nodes)
+			deg = deg + v.getConnections().size() + " ";
+		
+		Integer max = null;
+		Integer min = null;
+		
+		for(Vertex v : nodes)
+		{
+			max = min = v.getConnections().size();
+			for(Vertex v2 : v.getConnections())
+			{
+				if(v2.getConnections().size() >= max)
+					max = v2.getConnections().size();
+				if(v2.getConnections().size() < min)
+					min = v2.getConnections().size();
+			}
+			
+			mx.add(max);
+			mn.add(min);
+		}
+		
+		Collections.sort(mn, Collections.reverseOrder());
+		Collections.sort(mx, Collections.reverseOrder());
+		for(Integer i : mx)
+			imax = imax + i + " ";
+		for(Integer i : mn)
+			imin = imin + i + " ";
+		
+		mx = new LinkedList<Integer>();
+		mn = new LinkedList<Integer>();
+		
+		for(Vertex v : nodes)
+		{
+			max = null;
+			min = null;
+			
+			for(Vertex v2 : v.getConnections())
+			{
+				if(max == null || v2.getConnections().size() >= max)
+					max = v2.getConnections().size();
+				if(min == null || v2.getConnections().size() <= min)
+					min = v2.getConnections().size();
+			}
+			
+			if(max != null)
+				mx.add(max);
+			if(min != null)
+				mn.add(min);
+		}
+		
+		Collections.sort(mn, Collections.reverseOrder());
+		Collections.sort(mx, Collections.reverseOrder());
+		for(Integer i : mx)
+			emax = emax + i + " ";
+		for(Integer i : mn)
+			emin = emin + i + " ";
+		
+		@SuppressWarnings("unchecked")
+		ListView<String> tmp = (ListView<String>) MENU.getChildren().get(1);
+        tmp.getItems().set(0, deg);
+        tmp.getItems().set(1, imax);
+		tmp.getItems().set(2, emax);
+		tmp.getItems().set(3, imin);
+		tmp.getItems().set(4, emin);
 	}
 	
 	public static void main(String[] args)

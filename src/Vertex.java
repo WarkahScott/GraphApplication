@@ -1,3 +1,4 @@
+/* Warkah Scott */
 import java.util.ArrayList;
 
 public class Vertex implements Comparable<Vertex>
