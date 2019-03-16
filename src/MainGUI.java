@@ -2,9 +2,12 @@
 
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Scanner;
+
 import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
@@ -29,6 +32,7 @@ public class MainGUI extends Application
 	private final int SCREEN_HEIGHT = 750;
 	private final int CIRCLE_RADIUS = 10;
 	private final VBox MENU = new VBox(15);
+	private final Text overlayText = new Text();
 	
 	private LinkedList<Vertex> nodes = new LinkedList<Vertex>();
 	private LinkedList<Line> edges = new LinkedList<Line>();
@@ -45,7 +49,7 @@ public class MainGUI extends Application
 	@Override
 	public void start(Stage mainStage) throws Exception
 	{
-		mainStage.setTitle("Graph Application v0.4");
+		mainStage.setTitle("Graph Application v0.5");
 		mainStage.getIcons().add(new Image(MainGUI.class.getResourceAsStream("graph.jpg")));
 		
 		//Centers the window
@@ -67,8 +71,10 @@ public class MainGUI extends Application
 									});
 		
 		ListView<String> profiles = new ListView<String>();
-		profiles.getItems().addAll("Deg:", "I. Max:", "E. Max:", "I. Min:", "E. Min:");
+		profiles.getItems().addAll("Deg:", "I. Max:", "E. Max:", "E. Min:", "I. Min:");
 		profiles.setMaxHeight(116.95);
+		var profileListener = profiles.getSelectionModel().selectedItemProperty();
+		profileListener.addListener((obs, oldValue, newValue) -> {overlayText.setText(condense(newValue));});
 		
 		Button clear = new Button("Clear");
 		clear.setPrefWidth(80);
@@ -79,6 +85,9 @@ public class MainGUI extends Application
 		
 		MENU.getChildren().addAll(organize, profiles, clear);
 		MENU.setAlignment(Pos.CENTER);
+		
+		overlayText.setX(5);
+		overlayText.setFont(Font.font("arial", FontWeight.BOLD, null, 24));
 		
 		draw(mainStage);
 		mainStage.show();
@@ -109,7 +118,10 @@ public class MainGUI extends Application
 		}
 		
 		HBox gui = new HBox(5, MENU, scene);
-		Scene screen = new Scene(gui);
+		overlayText.setY(owner.getHeight() - 50);
+		
+		Group overlay = new Group(gui, overlayText);
+		Scene screen = new Scene(overlay);
 		
 		scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> 	{
 			startX = e.getX(); 
@@ -139,6 +151,7 @@ public class MainGUI extends Application
 		for(Vertex v : nodes)
 			v.setDegree(nodes.size() - v.getConnections().size());
 		
+		Collections.sort(nodes, Collections.reverseOrder());
 		profileUpdate();
 		
 		owner.setScene(screen);
@@ -397,8 +410,66 @@ public class MainGUI extends Application
         tmp.getItems().set(0, deg);
         tmp.getItems().set(1, imax);
 		tmp.getItems().set(2, emax);
-		tmp.getItems().set(3, imin);
-		tmp.getItems().set(4, emin);
+		tmp.getItems().set(3, emin);
+		tmp.getItems().set(4, imin);
+	}
+	
+	private String condense(String sequence)
+	{
+		Scanner read = new Scanner(sequence);
+		String tmp = "";
+		while(!tmp.contains(":"))
+		{
+			tmp += read.next();
+			tmp += " ";
+		}
+		
+		int count = 0; 
+		int prev = -1;
+		while(read.hasNextInt())
+		{
+			int curr = read.nextInt();
+			if(prev == -1)
+			{
+				prev = curr;
+				count = 1;
+				continue;
+			}
+			if(curr != prev)
+			{
+				tmp = condenseHelper(tmp, count, prev);
+				count = 1;
+			}
+			else
+				count++;
+			
+			prev = curr;
+		}
+		tmp = condenseHelper(tmp, count, prev);
+		read.close();
+		return tmp;
+	}
+	
+	private String condenseHelper(String tmp, int count, int prev)
+	{
+		tmp += prev;
+		if(count > 1)
+		{
+			if(count < 10)
+				tmp += Superscript[count];
+			else
+			{
+				LinkedList<Integer> num = new LinkedList<Integer>();
+				while(count > 0)
+				{
+					num.add(0, count%10);
+					count /= 10;
+				}
+				for(Integer i : num)
+					tmp += Superscript[i.intValue()];
+			}
+		}
+		return tmp;
 	}
 	
 	public static void main(String[] args)
